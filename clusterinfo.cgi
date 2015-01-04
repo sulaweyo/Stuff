@@ -5,6 +5,7 @@
 use CGI qw(:standard);
 use CGI::Carp qw(warningsToBrowser fatalsToBrowser);
 use Net::Domain qw(hostname hostfqdn hostdomain);
+use POSIX qw(uname);
 use warnings;
 use strict;
 
@@ -70,7 +71,14 @@ sub interfaces {
                 $IPs{$interface}->{IP}=$1 if /inet\D+(\d+\.\d+\.\d+\.\d+)/i;                                                         
         }                                                                                                                            
         return (%IPs);                                                                                                               
-}                                                                                                                                    
+} 
+
+# Get kernel version
+sub kernel {
+        my @info = uname();
+        my $kernel = "@info[2] @info[4]";
+        return ($kernel);
+}
                                                                                                                                      
 # Print out functions                                                                                                                
 # Get system details into hash                                                                                                       
@@ -78,6 +86,7 @@ sub gather_host_details {
         my %hd_hash = ();
         $hd_hash{'uptime'} = &uptime();
         $hd_hash{'cpu_cnt'} = &cpu_cnt();
+        $hd_hash{kernel} = &kernel();
         my @load = &loadavg();
         $hd_hash{'load1'} = $load[0];
         $hd_hash{'load5'} = $load[1];
@@ -107,6 +116,7 @@ sub print_host_details {
         print qq(<div id='host_detail' class='header'>Host details</div>);
         print qq(<div id='entry'>Uptime: $hd{uptime} days</div>);
         print qq(<div id='entry'>Load average: $hd{load1}, $hd{load5}, $hd{load15}</div>);
+        print qq(<div id='entry'>Kernel: $hd{kernel}</div>);
         print qq(<div id='host_detail' class='header'>System information</div>);
         print qq(<div id='entry'>CPU count: $hd{cpu_cnt}</div>);
         print qq(<div id='entry'>$hd{memT}</div>);
