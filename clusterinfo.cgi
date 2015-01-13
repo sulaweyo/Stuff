@@ -10,8 +10,9 @@ use warnings;
 use strict;
 
 # Variables
-my $cluster_name = "lnz-srv-arch-cl01";
-my %nodes = ("lnz-srv-arch-cl01-1v", "lnz-srv-arch-cl01-2v");
+my $cluster_name = "<cluster name>";
+my %nodes = ("<host 1>", "node1",
+	         "<host 2>", "node2");
 my %colors = (  "red",   "#ff0000",
                 "green", "#00ff00",
                 "blue",  "#0000ff",
@@ -59,7 +60,7 @@ sub meminfo {
         close FILE;                                                                                                                  
         return (@meminfo);                                                                                                           
 }                                                                                                                                    
-                                                                                                                                     
+
 # Get network interfaces                                                                                                             
 sub interfaces {                                                                                                                     
         my $interface;                                                                                                               
@@ -79,6 +80,20 @@ sub kernel {
         my $kernel = "@info[2] @info[4]";
         return ($kernel);
 }
+
+# Read the syncinfo - this file has to be updated by the cluster sync script
+sub syncinfo {
+        open FILE, "< /srv/http/sync.info" or die return ("Cannot open /srv/http/sync.info: $!");
+		my @syncinfo = <FILE>;
+        close FILE;
+        return (@syncinfo);
+}
+
+# Read cluster resource state
+sub clusterres {
+	my $clusterres = `/usr/bin/cl_status rscstatus 2>&1`;
+	return $clusterres;
+}
                                                                                                                                      
 # Print out functions                                                                                                                
 # Get system details into hash                                                                                                       
@@ -95,6 +110,10 @@ sub gather_host_details {
         $hd_hash{'memT'} = @mem[0];
         $hd_hash{'memF'} = @mem[1];
         $hd_hash{'memA'} = @mem[2];
+	my @sync = &syncinfo();
+	$hd_hash{'sync_dir'} = @sync[0];
+	$hd_hash{'sync_date'} = @sync[1];
+	$hd_hash{'clusterres'} = &clusterres();
         return (%hd_hash);
 }
 
@@ -129,9 +148,14 @@ sub print_host_details {
                 if ($IPs{$key}{STATE} == 'UP') {
                         print qq(<div id='entry'>Interface => $key: $IPs{$key}{IP}</div>);
                 } else {
-                        print qq(div id='entry'>Interface => $key: DOWN</div>);
+                        print qq(<div id='entry'>Interface => $key: DOWN</div>);
                 }
         }
+	print qq(<div id='host_detail' class='header'>Sync Information:</div>);
+	print qq(<div id='entry'>$hd{sync_dir}</div>);
+	print qq(<div id='entry'>$hd{sync_date}</div>);
+	print qq(<div id='host_detail' class='header'>Cluster Information:</div>);
+	print qq(<div id='entry'>Active cluster resources: $hd{clusterres}</div>);
         print qq(</div>);
 }
 
